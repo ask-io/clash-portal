@@ -1,9 +1,12 @@
 import openpyxl
 
 
-def process_clash_matrix(file_path):
+def process_clash_matrix(file_path, selected_tiers=None):
     wb = openpyxl.load_workbook(file_path)
     ws = wb["Clash Detection Matrix"]
+
+    if selected_tiers is None:
+        selected_tiers = ['1', '2', '3', 'O']
 
     col_disciplines = {}
     row_disciplines = {}
@@ -27,22 +30,27 @@ def process_clash_matrix(file_path):
     # --- INDENTATION RESET: This list stays outside the header mapping loops! ---
     clash_records = []
 
-    # Double loop to scan the lower triangle of the matrix
+    # Full rectangle scanner looking ONLY for numerical priorities
     for r in range(9, ws.max_row + 1):
-        diagonal_column = r - 4
-
-        for c in range(5, min(diagonal_column, ws.max_column + 1)):
+        for c in range(5, ws.max_column + 1):
             cell_value = ws.cell(row=r, column=c).value
 
-           # Skip blanks and 'X' cells
-            if cell_value is None or str(cell_value).strip().upper() == 'X':
+            # Skip empty spaces, 'X' alignment marks, AND 'O' operational marks ('O' operational marks are now strictly ignored, will be updated in the future if we want to reintroduce them as a separate category)
+            if cell_value is None:
+                continue
+                
+            val_cleaned = str(cell_value).strip().upper()
+            if val_cleaned == 'X' or val_cleaned == 'O':
                 continue
 
-            # Convert to a clean string format for safety
-            val_str = str(cell_value).strip()
+            # Extract the clean numerical string segment (handling decimals like '1.0')
+            if "." in val_cleaned:
+                val_str = val_cleaned.split(".")[0]
+            else:
+                val_str = val_cleaned
 
-            # Extract when we find valid clash indicators (Accepts both numbers and text 'O')
-            if val_str in ['1', '2', '3', 'O', 'o']:
+            # Double check that it's a true number before adding it
+            if val_str in selected_tiers and val_str.isdigit():
                 row_disp_out = col_disciplines.get(c)
                 row_el_out = ws.cell(row=8, column=c).value
 
@@ -54,7 +62,7 @@ def process_clash_matrix(file_path):
                     "Row Element": row_el_out,
                     "Column Discipline": col_disp_out,
                     "Column Element": col_el_out,
-                    "Priority": int(val_str) if val_str.isdigit() else val_str.upper()
+                    "Priority": int(val_str)  # Forced to a clean mathematical integer
                 })
 
     # --- INDENTATION RESET: File export happens AFTER the scanning loops finish ---
