@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BIM Clash Portal</title>
+    <link rel="stylesheet" href="style.css"> 
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>BIM Clash Portal</h1>
+            <p>Upload your spreadsheet to isolate and sort priority tiers 1, 2, and 3</p>
+        </header>
+
+        <div class="upload-card">
+            <div id="drop-zone" class="drop-zone">
+                <p>Drag and drop your Excel file here, or click to select a file</p>
+                <input type="file" id="file-input" accept=".xlsx" style="display: none;">
+                <button id="browse-btn" class="btn-secondary">Browse Files</button>
+            </div>
+            
+            <div id="file-details" class="file-details hidden">
+                <span id="file-name">matrix.xlsx</span>
+                <button id="process-btn" class="btn-primary">Process Matrix</button>
+            </div>
+            
+            <div id="status-message" class="status-message hidden"></div>
+
+            <div id="results-card" class="hidden" style="margin-top: 25px; padding: 25px; background-color: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 8px; text-align: center;">
+                <p style="color: #1e293b; font-size: 1rem; margin-bottom: 15px; font-weight: 600;">
+                    🎉 Analysis Complete! Your processed clash list is ready.
+                </p>
+                <button id="download-btn" class="btn-primary" style="background-color: #16a34a; border-color: #15803d; width: 100%; max-width: 300px; padding: 12px 20px; font-size: 1rem; font-weight: bold; cursor: pointer;">
+                    📥 Download Excel Report
+                </button>
+            </div>
+        </div>
+    </div> 
+    <script src="app.js"></script>
+</body>
+</html>
