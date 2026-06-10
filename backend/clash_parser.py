@@ -38,7 +38,7 @@ def process_clash_matrix(file_path, selected_tiers=None):
             # Skip empty spaces, 'X' alignment marks, AND 'O' operational marks ('O' operational marks are now strictly ignored, will be updated in the future if we want to reintroduce them as a separate category)
             if cell_value is None:
                 continue
-                
+
             val_cleaned = str(cell_value).strip().upper()
             if val_cleaned == 'X' or val_cleaned == 'O':
                 continue
@@ -62,7 +62,8 @@ def process_clash_matrix(file_path, selected_tiers=None):
                     "Row Element": row_el_out,
                     "Column Discipline": col_disp_out,
                     "Column Element": col_el_out,
-                    "Priority": int(val_str)  # Forced to a clean mathematical integer
+                    # Forced to a clean mathematical integer
+                    "Priority": int(val_str)
                 })
 
     # --- INDENTATION RESET: File export happens AFTER the scanning loops finish ---
@@ -86,7 +87,7 @@ def process_clash_matrix(file_path, selected_tiers=None):
             rec["Priority"]
         ])
 
-    # Adjust column widths for maximum readability
+# Adjust column widths for maximum readability
     ws_list.column_dimensions['A'].width = 22
     ws_list.column_dimensions['B'].width = 38
     ws_list.column_dimensions['C'].width = 22
@@ -94,14 +95,23 @@ def process_clash_matrix(file_path, selected_tiers=None):
     ws_list.column_dimensions['E'].width = 12
 
     wb.save(file_path)
-    return clash_records
+    return clash_records  # Returns the list of parsed dictionaries cleanly
 
 
-# --- PRODUCTION RUNNER BLOCK ---
+# --- SAFE PRODUCTION RUNNER BLOCK ---
 if __name__ == "__main__":
-    try:
-        total_records = process_clash_matrix("matrix.xlsx")
+    # This will now ONLY run if you manually press "Run" on parser.py directly
+    import os
+    # Swapped to match your actual saved upload name
+    test_file = "uploaded_matrix.xlsx"
+
+    if os.path.exists(test_file):
+        try:
+            total_records = process_clash_matrix(test_file)
+            print(
+                f"Success! Processed the matrix and wrote {len(total_records)} rows.")
+        except Exception as e:
+            print(f"An execution error occurred: {e}")
+    else:
         print(
-            f"Success! Processed the matrix and wrote {len(total_records)} rows into 'Clash_List'.")
-    except Exception as e:
-        print(f"An execution error occurred: {e}")
+            f"Local standalone test skipped: '{test_file}' not found. Ready for server deployment!")

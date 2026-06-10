@@ -7,3 +7,4 @@ __pycache__/
 # Ignore local data spreadsheets
 *.xlsx
 *.csv
+*start.bat
