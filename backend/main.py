@@ -1,6 +1,5 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import JSONResponse, StreamingResponse, FileResponse as StaticFile
-from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import shutil
 import os
@@ -52,31 +51,49 @@ async def upload_file(file: UploadFile = File(...)):
         records = process_clash_matrix(temp_location)
         print(f"Parser returned {len(records)} records!")
 
+        # --- MULTI-SHEET INITIALIZATION ---
         wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "Clash Priority Report"
+        
+        # Erase default active canvas tab
+        default_sheet = wb.active
+        wb.remove(default_sheet)
 
-        headers = ["Row Discipline", "Row Element",
-                   "Column Discipline", "Column Element", "Priority"]
-        ws.append(headers)
+        # Generate 3 dedicated tier sheets
+        sheets = {
+            1: wb.create_sheet(title="Priority 1 (Critical)"),
+            2: wb.create_sheet(title="Priority 2 (High)"),
+            3: wb.create_sheet(title="Priority 3 (Medium)")
+        }
 
+        headers = ["Row Discipline", "Row Element", "Column Discipline", "Column Element", "Priority"]
+        column_widths = {'A': 22, 'B': 38, 'C': 22, 'D': 38, 'E': 12}
+
+        # Format layout structures across all newly generated worksheet sheets
+        for ws_tab in sheets.values():
+            ws_tab.append(headers)
+            for col, width in column_widths.items():
+                ws_tab.column_dimensions[col].width = width
+
+        # --- DATA SHUFFLING LOOP ---
         for item in records:
             if isinstance(item, dict):
-                ws.append([
-                    item.get("Row Discipline", item.get("row_discipline", "")),
-                    item.get("Row Element", item.get("row_element", "")),
-                    item.get("Column Discipline", item.get(
-                        "column_discipline", "")),
-                    item.get("Column Element", item.get("column_element", "")),
-                    item.get("Priority", item.get("priority", ""))
-                ])
+                raw_priority = item.get("Priority", item.get("priority", ""))
+                try:
+                    priority_tier = int(raw_priority)
+                except (ValueError, TypeError):
+                    continue  # Safely ignore any unparseable metadata lines
+                
+                # Direct data rows straight into their matching priority worksheet tabs
+                if priority_tier in sheets:
+                    sheets[priority_tier].append([
+                        item.get("Row Discipline", item.get("row_discipline", "")),
+                        item.get("Row Element", item.get("row_element", "")),
+                        item.get("Column Discipline", item.get("column_discipline", "")),
+                        item.get("Column Element", item.get("column_element", "")),
+                        priority_tier
+                    ])
 
-        ws.column_dimensions['A'].width = 22
-        ws.column_dimensions['B'].width = 38
-        ws.column_dimensions['C'].width = 22
-        ws.column_dimensions['D'].width = 38
-        ws.column_dimensions['E'].width = 12
-
+        # Save to disk stream buffer
         with open(final_output_path, "wb") as f:
             wb.save(f)
 

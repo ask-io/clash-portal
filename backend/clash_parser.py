@@ -49,7 +49,6 @@ def process_clash_matrix(file_path, selected_tiers=None):
             else:
                 val_str = val_cleaned
 
-            # Double check that it's a true number before adding it
             if val_str in selected_tiers and val_str.isdigit():
                 row_disp_out = col_disciplines.get(c)
                 row_el_out = ws.cell(row=8, column=c).value
@@ -62,17 +61,16 @@ def process_clash_matrix(file_path, selected_tiers=None):
                     "Row Element": row_el_out,
                     "Column Discipline": col_disp_out,
                     "Column Element": col_el_out,
-                    # Forced to a clean mathematical integer
                     "Priority": int(val_str)
                 })
 
-    # --- INDENTATION RESET: File export happens AFTER the scanning loops finish ---
+    # Check if "Clash_List" already exists and remove it to avoid duplicates on multiple runs
     if "Clash_List" in wb.sheetnames:
         del wb["Clash_List"]
 
     ws_list = wb.create_sheet(title="Clash_List")
 
-    # Fixed typo in Column Discipline header string
+    
     headers = ["Row Discipline", "Row Element",
                "Column Discipline", "Column Element", "Priority"]
     ws_list.append(headers)
@@ -98,7 +96,7 @@ def process_clash_matrix(file_path, selected_tiers=None):
     return clash_records  # Returns the list of parsed dictionaries cleanly
 
 
-# --- SAFE PRODUCTION RUNNER BLOCK ---
+# For local testing, this block will only execute if you run this script directly.
 if __name__ == "__main__":
     # This will now ONLY run if you manually press "Run" on parser.py directly
     import os
