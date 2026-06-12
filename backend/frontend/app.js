@@ -85,7 +85,7 @@ if (processBtn) {
 
     const blob = await response.blob();
     
-    // 2. Create a temporary anchor element and force a browser click
+    // Create a temporary anchor element and force a browser click
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

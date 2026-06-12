@@ -14,7 +14,7 @@ HEADERS = ["Row Discipline", "Row Element",
 
 COL_WIDTHS = [22, 38, 22, 38, 12]
 
-# Matrix bounds (hardcoded from structure inspection)
+
 DATA_ROW_START = 9
 DATA_ROW_END = 79   # Last row with actual element data
 DATA_COL_START = 5
@@ -52,14 +52,12 @@ def process_clash_matrix(file_path):
     wb = openpyxl.load_workbook(file_path)
     ws = wb["Clash Detection Matrix"]
 
-    # We do this in-memory only; the file on disk keeps its original values.
     for r in range(DATA_ROW_START, DATA_ROW_END + 1):
         for c in range(DATA_COL_START, DATA_COL_END + 1):
             val = ws.cell(row=r, column=c).value
             if val is not None and str(val).strip().upper() == 'O':
                 ws.cell(row=r, column=c).value = "O"
 
-    # ── 2. Build discipline + element lookup maps ─────────────────────────────
     col_disciplines = {}
     current_disp = None
     for c in range(DATA_COL_START, DATA_COL_END + 1):
@@ -76,12 +74,12 @@ def process_clash_matrix(file_path):
             current_row_disp = str(val).strip()
         row_disciplines[r] = current_row_disp
 
-    # ── 3. Diagonal: X sits where row index == col index ─────────────────────
+    # Diagonal: X sits where row index == col index
     # Row 9 → col 5, row 10 → col 6 … row r → col (5 + r - 9)
     def diagonal_col(r):
         return DATA_COL_START + (r - DATA_ROW_START)
 
-    # ── 4. Scan upper half only (c < diagonal) ───────────────────────────────
+    # Scan upper half only (c < diagonal)
     # Upper half contains: 1, 2, 3, O (Optional Tier), and NA (empty)
     # Lower half is mirrored/redundant — excluded entirely
     buckets = {"1": [], "2": [], "3": [], "O": [], "NA": []}
@@ -103,13 +101,10 @@ def process_clash_matrix(file_path):
                     "Priority":          priority_label,
                 }
 
-# --- FIXED CLASSIFICATION VALIDATION BLOCK ---
-            # Isolate alphabetical 'O' from numeric digit strings to prevent sorting dropouts
             if val_cleaned == "O":
                 buckets["O"].append(make_record("O"))
 
             else:
-                # Process standard numeric priorities (1, 2, 3) handling decimal points
                 num_str = val_cleaned.split(
                     ".")[0] if "." in val_cleaned else val_cleaned
                 if num_str in ("1", "2", "3") and num_str.isdigit():
@@ -117,14 +112,12 @@ def process_clash_matrix(file_path):
 
                 elif val_cleaned == "" or (cell_value is not None and str(cell_value).strip() == ""):
                     buckets["NA"].append(make_record("NA"))
-            # X, text labels, and anything else are silently skipped
 
-    # ── 5. Summary ────────────────────────────────────────────────────────────
     for tier, recs in buckets.items():
         print(f"  Tier {tier}: {len(recs)} records")
     print(f"  Total: {sum(len(v) for v in buckets.values())} records")
 
-    # ── 6. Write sheets ───────────────────────────────────────────────────────
+    # Write sheets
     for old in ["Tier 1", "Tier 2", "Tier 3", "Tier O", "Tier NA", "Clash_List",]:
         if old in wb.sheetnames:
             del wb[old]
