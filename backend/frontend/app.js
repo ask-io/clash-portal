@@ -100,7 +100,7 @@ if (processBtn) {
 • Tier 1 (Critical): ${t1_count} clashes
 • Tier 2 (High): ${t2_count} clashes
 • Tier 3 (Medium): ${t3_count} clashes
-• Tier O (Overlap): ${to_count} clashes
+• Tier O (Optional): ${to_count} clashes
 • Tier N/A: ${tna_count} entries
 ---------------------------------------------
 Total Filtered Clash Matrix Rows: ${total_count}
@@ -120,9 +120,8 @@ function showStatus(message, type) {
     statusMessage.textContent = message;
     statusMessage.className = 'status-message';
     
-    // FORCE BEAUTIFUL LAYOUT: Respects multi-line templates and spacing columns perfectly
     statusMessage.style.whiteSpace = 'pre-wrap';
-    statusMessage.style.fontFamily = 'monospace'; // Optional: makes numbers line up perfectly in grids!
+    statusMessage.style.fontFamily = 'monospace';
     
     if (type === 'success') {
         statusMessage.style.backgroundColor = '#dcfce7';
@@ -140,3 +139,13 @@ function showStatus(message, type) {
     
     statusMessage.classList.remove('hidden');
 }
+// Dynamic Background Mouse Tracker
+window.addEventListener('mousemove', (event) => {
+    // Calculate cursor positions relative to the visible window viewport area
+    const xPosition = event.clientX;
+    const yPosition = event.clientY;
+    
+    // Pass the raw pixel coordinates straight up into our CSS Custom Properties
+    document.body.style.setProperty('--mouse-x', `${xPosition}px`);
+    document.body.style.setProperty('--mouse-y', `${yPosition}px`);
+});

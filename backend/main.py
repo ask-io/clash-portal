@@ -118,10 +118,8 @@ async def upload_file(file: UploadFile = File(...)):
                 "Content-Disposition": f'attachment; filename="{OUTPUT_FILENAME}"',
                 "Content-Length": str(len(file_bytes)),
 
-                # 1. Add your custom tracking metrics keys to the exposed list so JavaScript can see them
                 "Access-Control-Expose-Headers": "Content-Disposition, Content-Length, X-Tier1-Count, X-Tier2-Count, X-Tier3-Count, X-TierO-Count, X-TierNA-Count, X-Total-Count",
 
-                # 2. Map the header names to the string versions of your Python counter variables
                 "X-Tier1-Count": str(t1_count),
                 "X-Tier2-Count": str(t2_count),
                 "X-Tier3-Count": str(t3_count),
