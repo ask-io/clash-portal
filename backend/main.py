@@ -1,11 +1,12 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import JSONResponse, StreamingResponse, FileResponse as StaticFile
 from fastapi.middleware.cors import CORSMiddleware
+from openpyxl.styles import Font, PatternFill, Alignment
 import shutil
 import os
 import io
 import openpyxl
-from clash_parser import process_clash_matrix
+from clash_parser import process_clash_matrix, TIER_STYLES, HEADERS, COL_WIDTHS
 
 app = FastAPI()
 
@@ -38,9 +39,36 @@ def serve_css():
 OUTPUT_FILENAME = "Priority_Clash_Report.xlsx"
 
 
+def write_tier_sheet(wb, sheet_name, records, style):
+    if sheet_name in wb.sheetnames:
+        del wb[sheet_name]
+    ws = wb.create_sheet(title=sheet_name)
+    ws.sheet_properties.tabColor = style["tab"]
+
+    ws.append(HEADERS)
+    fill = PatternFill("solid", fgColor=style["header_fill"])
+    font = Font(bold=True, color=style["header_font"])
+    for cell in ws[1]:
+        cell.fill = fill
+        cell.font = font
+        cell.alignment = Alignment(horizontal="center")
+
+    for rec in records:
+        ws.append([
+            rec.get("Row Discipline", ""),
+            rec.get("Row Element", ""),
+            rec.get("Column Discipline", ""),
+            rec.get("Column Element", ""),
+            rec.get("Priority", ""),
+        ])
+
+    for letter, width in zip(["A", "B", "C", "D", "E"], COL_WIDTHS):
+        ws.column_dimensions[letter].width = width
+
+
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
-    current_dir = os.path.dirname(__file__)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
     temp_location = os.path.join(current_dir, "uploaded_matrix.xlsx")
     final_output_path = os.path.join(current_dir, OUTPUT_FILENAME)
 
@@ -48,52 +76,27 @@ async def upload_file(file: UploadFile = File(...)):
         shutil.copyfileobj(file.file, buffer)
 
     try:
-        records = process_clash_matrix(temp_location)
-        print(f"Parser returned {len(records)} records!")
+        all_records, buckets = process_clash_matrix(temp_location)
+        print(
+            f"Parser complete — {len(all_records)} total records across all tiers")
 
-        # --- MULTI-SHEET INITIALIZATION ---
+        # Build a fresh output workbook with one sheet per tier
         wb = openpyxl.Workbook()
-        
-        # Erase default active canvas tab
-        default_sheet = wb.active
-        wb.remove(default_sheet)
+        wb.remove(wb.active)  # Remove default empty sheet
 
-        # Generate 3 dedicated tier sheets
-        sheets = {
-            1: wb.create_sheet(title="Priority 1 (Critical)"),
-            2: wb.create_sheet(title="Priority 2 (High)"),
-            3: wb.create_sheet(title="Priority 3 (Medium)")
+        sheet_map = {
+            "1":     ("Tier 1",     TIER_STYLES["1"]),
+            "2":     ("Tier 2",     TIER_STYLES["2"]),
+            "3":     ("Tier 3",     TIER_STYLES["3"]),
+            # Use Tier O style for original O values
+            "O":     ("Tier O",     TIER_STYLES["O"]),
+            "EMPTY": ("Tier Empty", TIER_STYLES["EMPTY"]),
         }
 
-        headers = ["Row Discipline", "Row Element", "Column Discipline", "Column Element", "Priority"]
-        column_widths = {'A': 22, 'B': 38, 'C': 22, 'D': 38, 'E': 12}
+        for tier_key, (sheet_title, style) in sheet_map.items():
+            write_tier_sheet(wb, sheet_title, buckets[tier_key], style)
+            print(f"  {sheet_title}: {len(buckets[tier_key])} rows")
 
-        # Format layout structures across all newly generated worksheet sheets
-        for ws_tab in sheets.values():
-            ws_tab.append(headers)
-            for col, width in column_widths.items():
-                ws_tab.column_dimensions[col].width = width
-
-        # --- DATA SHUFFLING LOOP ---
-        for item in records:
-            if isinstance(item, dict):
-                raw_priority = item.get("Priority", item.get("priority", ""))
-                try:
-                    priority_tier = int(raw_priority)
-                except (ValueError, TypeError):
-                    continue  # Safely ignore any unparseable metadata lines
-                
-                # Direct data rows straight into their matching priority worksheet tabs
-                if priority_tier in sheets:
-                    sheets[priority_tier].append([
-                        item.get("Row Discipline", item.get("row_discipline", "")),
-                        item.get("Row Element", item.get("row_element", "")),
-                        item.get("Column Discipline", item.get("column_discipline", "")),
-                        item.get("Column Element", item.get("column_element", "")),
-                        priority_tier
-                    ])
-
-        # Save to disk stream buffer
         with open(final_output_path, "wb") as f:
             wb.save(f)
 
@@ -113,5 +116,7 @@ async def upload_file(file: UploadFile = File(...)):
         )
 
     except Exception as e:
+        import traceback
         print(f"Error: {e}")
+        traceback.print_exc()
         return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
