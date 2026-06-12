@@ -75,8 +75,14 @@ if (processBtn) {
     });
 
     if (!response.ok) throw new Error(`Server returned error: ${response.status}`);
+    
+    const t1_count = response.headers.get('X-Tier1-Count') || '0';
+    const t2_count = response.headers.get('X-Tier2-Count') || '0';
+    const t3_count = response.headers.get('X-Tier3-Count') || '0';
+    const to_count = response.headers.get('X-TierO-Count') || '0';
+    const tna_count = response.headers.get('X-TierNA-Count') || '0';
+    const total_count = response.headers.get('X-Total-Count') || '0';
 
-    // 1. Get the blob
     const blob = await response.blob();
     
     // 2. Create a temporary anchor element and force a browser click
@@ -88,7 +94,18 @@ if (processBtn) {
     a.click(); // Trigger the save dialog
     a.remove(); // Clean up
     
-    showStatus('Download triggered!', 'success');
+    const dynamicSummary = `
+🎉 Priority Clash Report Generated!
+---------------------------------------------
+• Tier 1 (Critical): ${t1_count} clashes
+• Tier 2 (High): ${t2_count} clashes
+• Tier 3 (Medium): ${t3_count} clashes
+• Tier O (Overlap): ${to_count} clashes
+• Tier N/A: ${tna_count} entries
+---------------------------------------------
+Total Filtered Clash Matrix Rows: ${total_count}
+    `.trim();
+    showStatus(dynamicSummary, 'success');
 } catch (error) {
     showStatus('Error: ' + error.message, 'error');
         } finally {
@@ -102,6 +119,10 @@ function showStatus(message, type) {
     
     statusMessage.textContent = message;
     statusMessage.className = 'status-message';
+    
+    // FORCE BEAUTIFUL LAYOUT: Respects multi-line templates and spacing columns perfectly
+    statusMessage.style.whiteSpace = 'pre-wrap';
+    statusMessage.style.fontFamily = 'monospace'; // Optional: makes numbers line up perfectly in grids!
     
     if (type === 'success') {
         statusMessage.style.backgroundColor = '#dcfce7';

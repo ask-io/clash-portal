@@ -6,7 +6,7 @@ TIER_STYLES = {
     "2":     {"tab": "FF6600", "header_fill": "FF6600", "header_font": "FFFFFF"},
     "3":     {"tab": "FFCC00", "header_fill": "FFCC00", "header_font": "000000"},
     "O":     {"tab": "00B0F0", "header_fill": "00B0F0", "header_font": "FFFFFF"},
-    "EMPTY": {"tab": "70AD47", "header_fill": "70AD47", "header_font": "FFFFFF"},
+    "NA":   {"tab": "70AD47", "header_fill": "70AD47", "header_font": "FFFFFF"},
 }
 
 HEADERS = ["Row Discipline", "Row Element",
@@ -52,13 +52,11 @@ def process_clash_matrix(file_path):
     wb = openpyxl.load_workbook(file_path)
     ws = wb["Clash Detection Matrix"]
 
-    # ── 1. Internally remap O → 4 so output is consistent ────────────────────
     # We do this in-memory only; the file on disk keeps its original values.
     for r in range(DATA_ROW_START, DATA_ROW_END + 1):
         for c in range(DATA_COL_START, DATA_COL_END + 1):
             val = ws.cell(row=r, column=c).value
             if val is not None and str(val).strip().upper() == 'O':
-                # Keep as "O" for clarity; we'll handle it as a separate tier later
                 ws.cell(row=r, column=c).value = "O"
 
     # ── 2. Build discipline + element lookup maps ─────────────────────────────
@@ -84,9 +82,9 @@ def process_clash_matrix(file_path):
         return DATA_COL_START + (r - DATA_ROW_START)
 
     # ── 4. Scan upper half only (c < diagonal) ───────────────────────────────
-    # Upper half contains: 1, 2, 3, 4 (formerly O), and Empty
+    # Upper half contains: 1, 2, 3, O (Optional Tier), and NA (empty)
     # Lower half is mirrored/redundant — excluded entirely
-    buckets = {"1": [], "2": [], "3": [], "O": [], "EMPTY": []}
+    buckets = {"1": [], "2": [], "3": [], "O": [], "NA": []}
 
     for r in range(DATA_ROW_START, DATA_ROW_END + 1):
         diag_c = diagonal_col(r)
@@ -118,7 +116,7 @@ def process_clash_matrix(file_path):
                     buckets[num_str].append(make_record(int(num_str)))
 
                 elif val_cleaned == "" or (cell_value is not None and str(cell_value).strip() == ""):
-                    buckets["EMPTY"].append(make_record("Empty"))
+                    buckets["NA"].append(make_record("NA"))
             # X, text labels, and anything else are silently skipped
 
     # ── 5. Summary ────────────────────────────────────────────────────────────
@@ -127,7 +125,7 @@ def process_clash_matrix(file_path):
     print(f"  Total: {sum(len(v) for v in buckets.values())} records")
 
     # ── 6. Write sheets ───────────────────────────────────────────────────────
-    for old in ["Tier 1", "Tier 2", "Tier 3", "Tier O", "Tier Empty", "Clash_List",]:
+    for old in ["Tier 1", "Tier 2", "Tier 3", "Tier O", "Tier NA", "Clash_List",]:
         if old in wb.sheetnames:
             del wb[old]
 
@@ -136,7 +134,7 @@ def process_clash_matrix(file_path):
         "2":     "Tier 2",
         "3":     "Tier 3",
         "O":     "Tier O",
-        "EMPTY": "Tier Empty",
+        "NA": "Tier NA",
     }
 
     for tier_key, sheet_title in sheet_map.items():
@@ -145,7 +143,7 @@ def process_clash_matrix(file_path):
     wb.save(file_path)
 
     all_records = []
-    for tier_key in ("1", "2", "3", "O", "EMPTY"):
+    for tier_key in ("1", "2", "3", "O", "NA"):
         all_records.extend(buckets[tier_key])
     return all_records, buckets
 

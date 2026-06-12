@@ -88,10 +88,16 @@ async def upload_file(file: UploadFile = File(...)):
             "1":     ("Tier 1",     TIER_STYLES["1"]),
             "2":     ("Tier 2",     TIER_STYLES["2"]),
             "3":     ("Tier 3",     TIER_STYLES["3"]),
-            # Use Tier O style for original O values
             "O":     ("Tier O",     TIER_STYLES["O"]),
-            "EMPTY": ("Tier Empty", TIER_STYLES["EMPTY"]),
+            "NA":   ("Tier NA",   TIER_STYLES["NA"]),
         }
+
+        t1_count = len(buckets.get("1", []))
+        t2_count = len(buckets.get("2", []))
+        t3_count = len(buckets.get("3", []))
+        to_count = len(buckets.get("O", []))
+        tna_count = len(buckets.get("NA", []))
+        total_count = len(all_records)
 
         for tier_key, (sheet_title, style) in sheet_map.items():
             write_tier_sheet(wb, sheet_title, buckets[tier_key], style)
@@ -111,7 +117,17 @@ async def upload_file(file: UploadFile = File(...)):
             headers={
                 "Content-Disposition": f'attachment; filename="{OUTPUT_FILENAME}"',
                 "Content-Length": str(len(file_bytes)),
-                "Access-Control-Expose-Headers": "Content-Disposition, Content-Length",
+
+                # 1. Add your custom tracking metrics keys to the exposed list so JavaScript can see them
+                "Access-Control-Expose-Headers": "Content-Disposition, Content-Length, X-Tier1-Count, X-Tier2-Count, X-Tier3-Count, X-TierO-Count, X-TierNA-Count, X-Total-Count",
+
+                # 2. Map the header names to the string versions of your Python counter variables
+                "X-Tier1-Count": str(t1_count),
+                "X-Tier2-Count": str(t2_count),
+                "X-Tier3-Count": str(t3_count),
+                "X-TierO-Count": str(to_count),
+                "X-TierNA-Count": str(tna_count),
+                "X-Total-Count": str(total_count)
             }
         )
 
