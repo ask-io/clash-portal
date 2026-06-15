@@ -62,7 +62,7 @@ Each sheet includes: Row Discipline, Row Element, Column Discipline, Column Elem
 ```bash
 # Clone the repo
 git clone https://github.com/ask-io/clash-portal.git
-cd bim-clash-portal
+cd clash-portal
 
 # Install dependencies
 pip install -r requirements.txt
