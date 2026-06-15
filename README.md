@@ -61,7 +61,7 @@ Each sheet includes: Row Discipline, Row Element, Column Discipline, Column Elem
 
 ```bash
 # Clone the repo
-git clone https://github.com/your-username/bim-clash-portal.git
+git clone https://github.com/ask-io/clash-portal.git
 cd bim-clash-portal
 
 # Install dependencies
