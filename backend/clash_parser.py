@@ -15,10 +15,36 @@ HEADERS = ["Row Discipline", "Row Element",
 COL_WIDTHS = [22, 38, 22, 38, 12]
 
 
+# Fixed start positions structural to the matrix layout and never change (For NORR matrix template)
 DATA_ROW_START = 9
-DATA_ROW_END = 79   # Last row with actual element data
 DATA_COL_START = 5
-DATA_COL_END = 75   # Last col with actual element data
+
+#for universal use, we can make these dynamic by scanning the matrix for the last non-empty row and column. This is done in detect_bounds() below.
+def detect_bounds(ws):
+    data_row_end = DATA_ROW_START
+    r = DATA_ROW_START
+    while True:
+        val = ws.cell(row=r, column=4).value
+        if val is None or str(val).strip() == "":
+            break
+        data_row_end = r
+        r += 1
+
+    data_col_end = DATA_COL_START
+    c = DATA_COL_START
+    while True:
+        val = ws.cell(row=8, column=c).value
+        if val is None or str(val).strip() == "":
+            break
+        data_col_end = c
+        c += 1
+
+    print(
+        f"  Detected matrix bounds: rows {DATA_ROW_START}-{data_row_end}, cols {DATA_COL_START}-{data_col_end}")
+    print(
+        f"  Matrix size: {data_row_end - DATA_ROW_START + 1} x {data_col_end - DATA_COL_START + 1}")
+
+    return data_row_end, data_col_end
 
 
 def _write_sheet(wb, sheet_name, records, style):
@@ -52,6 +78,9 @@ def process_clash_matrix(file_path):
     wb = openpyxl.load_workbook(file_path)
     ws = wb["Clash Detection Matrix"]
 
+    # Dynamically detect how large this matrix actually is
+    DATA_ROW_END, DATA_COL_END = detect_bounds(ws)
+
     for r in range(DATA_ROW_START, DATA_ROW_END + 1):
         for c in range(DATA_COL_START, DATA_COL_END + 1):
             val = ws.cell(row=r, column=c).value
@@ -74,20 +103,17 @@ def process_clash_matrix(file_path):
             current_row_disp = str(val).strip()
         row_disciplines[r] = current_row_disp
 
-    # Diagonal: X sits where row index == col index
-    # Row 9 → col 5, row 10 → col 6 … row r → col (5 + r - 9)
+    # Diagonal: row r maps to col (DATA_COL_START + r - DATA_ROW_START)
     def diagonal_col(r):
         return DATA_COL_START + (r - DATA_ROW_START)
 
-    # Scan upper half only (c < diagonal)
-    # Upper half contains: 1, 2, 3, O (Optional Tier), and NA (empty)
-    # Lower half is mirrored/redundant — excluded entirely
+    # Scan lower-left triangle only (cols strictly left of the diagonal)
+    # The upper-right half is a mirror scanning both would count every clash twice (usually empty, but still).
     buckets = {"1": [], "2": [], "3": [], "O": [], "NA": []}
 
     for r in range(DATA_ROW_START, DATA_ROW_END + 1):
         diag_c = diagonal_col(r)
         for c in range(DATA_COL_START, min(diag_c, DATA_COL_END + 1)):
-            # Only scan cells strictly left of the diagonal (upper half)
             cell_value = ws.cell(row=r, column=c).value
             val_cleaned = str(cell_value).strip(
             ).upper() if cell_value is not None else ""
