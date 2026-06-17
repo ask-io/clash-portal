@@ -10,16 +10,18 @@ TIER_STYLES = {
 }
 
 HEADERS = ["Row Discipline", "Row Element",
-           "Column Discipline", "Column Element", "Priority"]
+           "Column Discipline", "Column Element", "Priority", "Clash Rules"]
 
-COL_WIDTHS = [22, 38, 22, 38, 12]
+COL_WIDTHS = [22, 38, 22, 38, 12, 50]
 
 
 # Fixed start positions structural to the matrix layout and never change (For NORR matrix template)
 DATA_ROW_START = 9
 DATA_COL_START = 5
 
-#for universal use, we can make these dynamic by scanning the matrix for the last non-empty row and column. This is done in detect_bounds() below.
+# for universal use, we can make these dynamic by scanning the matrix for the last non-empty row and column. This is done in detect_bounds() below.
+
+
 def detect_bounds(ws):
     data_row_end = DATA_ROW_START
     r = DATA_ROW_START
@@ -62,20 +64,26 @@ def _write_sheet(wb, sheet_name, records, style):
         cell.alignment = Alignment(horizontal="center")
 
     for rec in records:
+        # Use .get() with fallback empty strings to make it completely crash-proof
+        priority = rec.get("Priority", "")
+        col_elem = rec.get("Column Element", "") or ""
+        row_elem = rec.get("Row Element", "") or ""
+        clashRules = f"TIER {priority} {col_elem} vs {row_elem}"
         ws.append([
             rec["Row Discipline"],
             rec["Row Element"],
             rec["Column Discipline"],
             rec["Column Element"],
             rec["Priority"],
+            clashRules
         ])
 
-    for letter, width in zip(["A", "B", "C", "D", "E"], COL_WIDTHS):
+    for letter, width in zip(["A", "B", "C", "D", "E", "F"], COL_WIDTHS):
         ws.column_dimensions[letter].width = width
 
 
 def process_clash_matrix(file_path):
-    wb = openpyxl.load_workbook(file_path)
+    wb = openpyxl.load_workbook(file_path, data_only=True) #If the matrix has formulas, we want the evaluated values, not the formulas themselves. data_only=True ensures that.
     ws = wb["Clash Detection Matrix"]
 
     # Dynamically detect how large this matrix actually is
@@ -125,6 +133,7 @@ def process_clash_matrix(file_path):
                     "Column Discipline": row_disciplines.get(r),
                     "Column Element":    ws.cell(row=r, column=4).value,
                     "Priority":          priority_label,
+                    "Clash Rules":       ws.cell(row=r, column=6).value,
                 }
 
             if val_cleaned == "O":

@@ -54,15 +54,21 @@ def write_tier_sheet(wb, sheet_name, records, style):
         cell.alignment = Alignment(horizontal="center")
 
     for rec in records:
+        priority = rec.get("Priority", "")
+        col_elem = rec.get("Column Element", "")
+        row_elem = rec.get("Row Element", "")
+        clash_rules_text = f"TIER {priority} {col_elem} vs {row_elem}"
+
         ws.append([
             rec.get("Row Discipline", ""),
             rec.get("Row Element", ""),
             rec.get("Column Discipline", ""),
             rec.get("Column Element", ""),
-            rec.get("Priority", ""),
+            priority,
+            clash_rules_text  # Append as Column F
         ])
 
-    for letter, width in zip(["A", "B", "C", "D", "E"], COL_WIDTHS):
+    for letter, width in zip(["A", "B", "C", "D", "E", "F"], COL_WIDTHS):
         ws.column_dimensions[letter].width = width
 
 
