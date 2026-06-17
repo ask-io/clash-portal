@@ -10,8 +10,8 @@ A lightweight internal web tool for processing BIM clash detection matrices. Upl
 
 The portal accepts a Navisworks-style clash detection matrix (`.xlsx`) and automatically:
 
-- Scans the upper triangle of the matrix (rows 9–79, columns 5–75) to avoid duplicate mirrored entries
-- Remaps legacy `O` values to the correct Optional tier internally, without modifying your source file
+- Automatically detects the size of the matrix at runtime — works on any matrix regardless of how many elements it contains
+- Scans the lower-left triangle of the matrix to avoid counting duplicate mirrored entries
 - Buckets every clash pair into one of five priority tiers
 - Returns a formatted, colour-coded Excel report with one tab per tier
 
@@ -93,9 +93,7 @@ The tool expects an Excel workbook with a sheet named **`Clash Detection Matrix`
 - **Row 8** — Column element names
 - **Column 2** — Row discipline labels (merged cells supported)
 - **Column 4** — Row element names
-- **Rows 9–79, Columns 5–75** — Matrix data cells containing `1`, `2`, `3`, `O`, or blank
-
-Values outside this range are ignored to avoid picking up legend rows or other sheet content.
+- **Starting from Row 9, Column 5** — Matrix data cells containing `1`, `2`, `3`, `O`, or blank. The parser automatically detects where the data ends so any matrix size is supported.
 
 ---
 
