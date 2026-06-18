@@ -1,6 +1,6 @@
 # BIM Clash Portal
 
-A lightweight internal web tool for processing BIM clash detection matrices. Upload an Excel clash matrix, and the portal parses, categorises, and returns a structured priority report — ready to download in seconds.
+A lightweight internal web tool for processing 3D modeling clash detection matrices. Upload an Excel clash matrix, and the portal parses, categorises, and returns a structured priority report — ready to download in seconds.
 
 **Live demo:** [clash-portal.onrender.com](https://clash-portal.onrender.com)
 
@@ -10,10 +10,11 @@ A lightweight internal web tool for processing BIM clash detection matrices. Upl
 
 The portal accepts a Navisworks-style clash detection matrix (`.xlsx`) and automatically:
 
-- Automatically detects the size of the matrix at runtime — works on any matrix regardless of how many elements it contains
-- Scans the lower-left triangle of the matrix to avoid counting duplicate mirrored entries
-- Buckets every clash pair into one of five priority tiers
-- Returns a formatted, colour-coded Excel report with one tab per tier
+- **Dynamic Matrix Expansion:** Detects the size of the matrix at runtime — supporting arbitrary matrix dimensions regardless of how many elements it contains.
+- **Deduplication:** Scans the lower-left triangle of the matrix to avoid counting duplicate mirrored entries.
+- **Formula Evaluation:** Natively overrides raw Excel coordinate formulas to extract evaluated text strings rather than raw equations.
+- **Automated Clash Rules:** Dynamically generates a custom **"Clash Rules" (Column F)** text string matching the pattern `TIER X Column Element vs Row Element` based on priority buckets.
+- **Tier Bucketing:** Maps every clash pair into one of five priority tiers and outputs a beautifully formatted, colour-coded multi-sheet report.
 
 ### Output tiers
 
@@ -25,7 +26,14 @@ The portal accepts a Navisworks-style clash detection matrix (`.xlsx`) and autom
 | Tier O | 🔵 Blue | Optional |
 | Tier NA | 🟢 Green | Not Applicable / Empty |
 
-Each sheet includes: Row Discipline, Row Element, Column Discipline, Column Element, and Priority.
+Each sheet dynamically populates 6 columns: Row Discipline, Row Element, Column Discipline, Column Element, Priority, and **Clash Rules**.
+
+---
+
+## Technical Edge & Guardrails
+
+- **Graceful Exception Interception:** The backend intercepts `KeyError` or `ValueError` issues (such as a missing matrix tab) during spreadsheet execution, transforming unhandled application crashes into target-rich `400 Bad Request` messages.
+- **Frontend Error Visibility:** The asynchronous interface catches incoming error payloads and routes custom backend alerts instantly onto the web interface status banner rather than failing silently.
 
 ---
 
