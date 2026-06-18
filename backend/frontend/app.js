@@ -69,32 +69,46 @@ if (processBtn) {
         formData.append('file', selectedFile);
 
         try {
-    const response = await fetch('/upload', {
-        method: 'POST',
-        body: formData
-    });
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
 
-    if (!response.ok) throw new Error(`Server returned error: ${response.status}`);
-    
-    const t1_count = response.headers.get('X-Tier1-Count') || '0';
-    const t2_count = response.headers.get('X-Tier2-Count') || '0';
-    const t3_count = response.headers.get('X-Tier3-Count') || '0';
-    const to_count = response.headers.get('X-TierO-Count') || '0';
-    const tna_count = response.headers.get('X-TierNA-Count') || '0';
-    const total_count = response.headers.get('X-Total-Count') || '0';
+            // Check if the server encountered a sheet validation rule error (Status 400)
+            if (!response.ok) {
+                let errorMessage = `Server returned error: ${response.status}`;
+                try {
+                    // Read out the JSON error message dictionary sent by main.py
+                    const errorData = await response.json();
+                    if (errorData && errorData.message) {
+                        errorMessage = errorData.message;
+                    }
+                } catch (jsonParseError) {
+                    // No valid JSON body found, continue with the status string fallback
+                }
+                throw new Error(errorMessage);
+            }
+        
+            const t1_count = response.headers.get('X-Tier1-Count') || '0';
+            const t2_count = response.headers.get('X-Tier2-Count') || '0';
+            const t3_count = response.headers.get('X-Tier3-Count') || '0';
+            const to_count = response.headers.get('X-TierO-Count') || '0';
+            const tna_count = response.headers.get('X-TierNA-Count') || '0';
+            const total_count = response.headers.get('X-Total-Count') || '0';
 
-    const blob = await response.blob();
-    
-    // Create a temporary anchor element and force a browser click
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'Priority_Clash_Report.xlsx'; // Force file name
-    document.body.appendChild(a);
-    a.click(); // Trigger the save dialog
-    a.remove(); // Clean up
-    
-    const dynamicSummary = `
+            const blob = await response.blob();
+            
+            // Create a temporary anchor element and force a browser click
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Priority_Clash_Report.xlsx'; // Force file name
+            document.body.appendChild(a);
+            a.click(); // Trigger the save dialog
+            a.remove(); // Clean up
+            window.URL.revokeObjectURL(url); // Instantly clean RAM allocations
+            
+            const dynamicSummary = `
 🎉 Priority Clash Report Generated!
 ---------------------------------------------
 • Tier 1 (Critical): ${t1_count} clashes
@@ -104,10 +118,10 @@ if (processBtn) {
 • Tier N/A: ${tna_count} entries
 ---------------------------------------------
 Total Filtered Clash Matrix Rows: ${total_count}
-    `.trim();
-    showStatus(dynamicSummary, 'success');
-} catch (error) {
-    showStatus('Error: ' + error.message, 'error');
+            `.trim();
+            showStatus(dynamicSummary, 'success');
+        } catch (error) {
+            showStatus('Error: ' + error.message, 'error');
         } finally {
             processBtn.disabled = false;
         }
@@ -139,6 +153,7 @@ function showStatus(message, type) {
     
     statusMessage.classList.remove('hidden');
 }
+
 // Dynamic Background Mouse Tracker
 window.addEventListener('mousemove', (event) => {
     // Calculate cursor positions relative to the visible window viewport area

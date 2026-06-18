@@ -135,6 +135,16 @@ async def upload_file(file: UploadFile = File(...)):
             }
         )
 
+    except (ValueError, KeyError) as sheet_err:
+        print(f"Sheet Validation Error: {sheet_err}")
+        return JSONResponse(
+            status_code=400,
+            content={
+                "status": "error",
+                "message": 'Target sheet containing matrix must be named "Clash Detection Matrix"'
+            }
+        )
+
     except Exception as e:
         import traceback
         print(f"Error: {e}")
