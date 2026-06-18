@@ -4,26 +4,28 @@ on:
   release:
     types: [published]
 
-permissions:
-  contents: write
-
 jobs:
-  update-readme:
+  update-profile-readme:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
+      # 1. Checkout your profile repository specifically instead of this one
+      - name: Checkout Profile Repository
         uses: actions/checkout@v4
+        with:
+          repository: 'ask-io/ask-io'
+          token: ${{ secrets.PROFILE_README_TOKEN }}
 
-      - name: Replace Version String in README
+      # 2. Find and replace the version tag inside your profile README
+      - name: Replace Version String in Profile README
         uses: richardrigutins/replace-in-file-action@v2
         with:
           files: 'README.md'
-          # Looks specifically for your project header and its version markdown tag
           search: '### \[BIM Clash Portal\]\(https:\/\/github\.com\/ask-io\/clash-portal\) \&nbsp;\`v[0-9]+\.[0-9]+\.[0-9]+\`'
           replacement: '### [BIM Clash Portal](https://github.com/ask-io/clash-portal) &nbsp;`${{ github.event.release.tag_name }}`'
 
-      - name: Commit and Push Changes
+      # 3. Commit the change back to your profile repo
+      - name: Commit and Push Changes to Profile
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore: automatically update README version to ${{ github.event.release.tag_name }}"
+          commit_message: "chore: automatically update clash-portal version to ${{ github.event.release.tag_name }}"
           file_pattern: 'README.md'
